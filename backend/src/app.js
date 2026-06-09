@@ -16,6 +16,10 @@ export const createApp = () => {
     );
     app.use(express.json({ limit: "1mb" }));
 
+    app.get("/", (_req, res) => {
+        res.status(200).send("Backend is running");
+    });
+
     app.get("/api/health", (_req, res) => {
         res.json({ ok: true, service: "aluminium-draft-angle-api" });
     });
