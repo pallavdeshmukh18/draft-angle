@@ -3,7 +3,7 @@ import React from "react";
 export default function GoogleLoginButton({ onStart, onSuccess, onError, onCancel, disabled }) {
     const handleGoogleLogin = () => {
         const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+        const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || window.location.origin).replace(/\/+$/, "");
 
         if (!clientId) {
             onError("Google client configuration VITE_GOOGLE_CLIENT_ID is missing.");
