@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "./hooks/useAuth.js";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
 const initialForm = {
     geometryComplexity: "Simple",
@@ -242,11 +242,16 @@ function Advisor({ onBack }) {
             setLoading(true);
             setError("");
             try {
+                const headers = {
+                    "Content-Type": "application/json"
+                };
+                const token = localStorage.getItem("token");
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
                 const response = await fetch(`${API_BASE_URL}/api/recommend-draft`, {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers,
                     credentials: "include",
                     body: JSON.stringify({
                         ...form,
@@ -279,7 +284,13 @@ function Advisor({ onBack }) {
         const loadHistory = async () => {
             try {
                 if (!API_BASE_URL) return;
+                const headers = {};
+                const token = localStorage.getItem("token");
+                if (token) {
+                    headers["Authorization"] = `Bearer ${token}`;
+                }
                 const response = await fetch(`${API_BASE_URL}/api/recommendations`, {
+                    headers,
                     credentials: "include"
                 });
                 if (!response.ok) return;
@@ -389,11 +400,16 @@ function Advisor({ onBack }) {
         setChatError("");
 
         try {
+            const headers = {
+                "Content-Type": "application/json"
+            };
+            const token = localStorage.getItem("token");
+            if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+            }
             const response = await fetch(`${API_BASE_URL}/api/chat`, {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
+                headers,
                 credentials: "include",
                 body: JSON.stringify({
                     message: msgText,

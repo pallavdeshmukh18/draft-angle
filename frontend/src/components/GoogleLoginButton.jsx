@@ -74,6 +74,9 @@ export default function GoogleLoginButton({ onStart, onSuccess, onError, onCance
                 console.log("Google Sign-In success detected via postMessage.");
                 isResolved = true;
                 clearInterval(popupChecker);
+                if (event.data.token) {
+                    localStorage.setItem("token", event.data.token);
+                }
                 onSuccess();
                 window.removeEventListener("message", handleMessage);
             } else if (event.data.type === "GOOGLE_LOGIN_ERROR") {

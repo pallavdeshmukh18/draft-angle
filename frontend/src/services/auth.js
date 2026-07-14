@@ -1,10 +1,16 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
 
-// Helper to make API requests with HTTP-only credentials
+// Helper to make API requests with HTTP-only credentials or Authorization header fallback
 const apiRequest = async (url, options = {}) => {
     const defaultHeaders = {
         "Content-Type": "application/json"
     };
+
+    // Attach Bearer token from localStorage if present to bypass third-party cookie blocks
+    const token = localStorage.getItem("token");
+    if (token) {
+        defaultHeaders["Authorization"] = `Bearer ${token}`;
+    }
 
     const response = await fetch(`${API_BASE_URL}${url}`, {
         ...options,
@@ -25,20 +31,29 @@ const apiRequest = async (url, options = {}) => {
 };
 
 export const registerUser = async (fullName, email, password) => {
-    return apiRequest("/api/auth/register", {
+    const data = await apiRequest("/api/auth/register", {
         method: "POST",
         body: JSON.stringify({ fullName, email, password })
     });
+    if (data?.token) {
+        localStorage.setItem("token", data.token);
+    }
+    return data;
 };
 
 export const loginUser = async (email, password) => {
-    return apiRequest("/api/auth/login", {
+    const data = await apiRequest("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password })
     });
+    if (data?.token) {
+        localStorage.setItem("token", data.token);
+    }
+    return data;
 };
 
 export const logoutUser = async () => {
+    localStorage.removeItem("token");
     return apiRequest("/api/auth/logout", {
         method: "POST"
     });
