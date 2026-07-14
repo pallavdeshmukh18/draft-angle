@@ -1,9 +1,20 @@
 import cors from "cors";
 import express from "express";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 import recommendationsRouter from "./routes/recommendations.js";
+import authRouter from "./routes/auth.js";
 
 export const createApp = () => {
     const app = express();
+
+    // Enable security headers
+    app.use(helmet());
+
+    // Sanitize input to protect against NoSQL Injection
+    app.use(mongoSanitize());
+
     const allowedOrigins = process.env.CLIENT_URL
         ? process.env.CLIENT_URL.split(",").map((value) => value.trim()).filter(Boolean)
         : true;
@@ -14,6 +25,10 @@ export const createApp = () => {
             credentials: true
         })
     );
+
+    // Parse cookie headers for JWT authentication
+    app.use(cookieParser());
+    
     app.use(express.json({ limit: "1mb" }));
 
     app.get("/", (_req, res) => {
@@ -24,6 +39,10 @@ export const createApp = () => {
         res.json({ ok: true, service: "aluminium-draft-angle-api" });
     });
 
+    // Mount Auth routes
+    app.use("/api/auth", authRouter);
+    
+    // Mount Recommendation routes
     app.use("/api", recommendationsRouter);
 
     app.use((error, _req, res, _next) => {

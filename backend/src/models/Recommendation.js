@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const recommendationSchema = new mongoose.Schema(
     {
+        user: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true
+        },
         inputs: {
             geometryComplexity: { type: String, required: true },
             wallDepthMm: { type: Number, required: true },
