@@ -1,6 +1,34 @@
 import React, { useState, useEffect, useRef } from "react";
 
 export default function LandingPage({ onLaunch }) {
+    const [theme, setThemeState] = useState(() => localStorage.getItem("theme") || "system");
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const settingsRef = useRef(null);
+
+    const updateTheme = (newTheme) => {
+        setThemeState(newTheme);
+        localStorage.setItem("theme", newTheme);
+        const isDark = newTheme === "dark" || (newTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute("content", isDark ? "#121212" : "#FAF9F6");
+        }
+    };
+
+    // Close settings popover when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+                setSettingsOpen(false);
+            }
+        };
+        if (settingsOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [settingsOpen]);
+
     // 3D CAD block state
     const [draftSlider, setDraftSlider] = useState(1.5);
     const [rotation, setRotation] = useState({ x: -20, y: 35 });
@@ -147,6 +175,52 @@ export default function LandingPage({ onLaunch }) {
                     </nav>
                     <div className="nav-actions">
                         <button onClick={onLaunch} className="btn-primary-sm">Launch Advisor</button>
+                        
+                        <div className="settings-wrapper" ref={settingsRef}>
+                            <button 
+                                type="button" 
+                                className={`btn-nav-settings ${settingsOpen ? "active" : ""}`} 
+                                title="Settings Preferences"
+                                onClick={() => setSettingsOpen(!settingsOpen)}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="settings-gear-svg">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                </svg>
+                            </button>
+                            
+                            {settingsOpen && (
+                                <div className="settings-popover">
+                                    <div className="settings-popover-title">Preferences</div>
+                                    <div className="settings-popover-row">
+                                        <span className="settings-popover-label">Interface Theme</span>
+                                        <div className="theme-segmented-control">
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "system" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("system")}
+                                            >
+                                                System
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "light" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("light")}
+                                            >
+                                                Light
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "dark" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("dark")}
+                                            >
+                                                Dark
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>
@@ -682,19 +756,37 @@ export default function LandingPage({ onLaunch }) {
                         </button>
                     </div>
                 </div>
-            </section>
-
-            {/* Footer */}
+          </section>
+            
             <footer className="landing-footer">
                 <div className="landing-container">
-                    <div className="footer-content">
-                        <span>© 2026 DraftAngle Advisor. Cleanroom design system.</span>
-                        <div className="footer-meta-links">
-                            <span>NADCA Core Standards</span>
-                            <span className="dot-divider"></span>
-                            <span>Groq Llama System</span>
-                            <span className="dot-divider"></span>
-                            <span>MongoDB Auditing Enabled</span>
+                    <div className="footer-grid">
+                        <div className="footer-col">
+                            <h2 className="footer-heading">Engineering Draft Angle Advisor</h2>
+                            <p className="footer-subtitle">AI-powered Draft Angle Recommendation Platform for Manufacturing Engineers.</p>
+                            <p className="footer-section-label">DESIGNED & DEVELOPED BY</p>
+                            <div className="footer-chips">
+                                <span className="footer-chip">Tejas</span>
+                                <span className="footer-chip">Shreyas</span>
+                                <span className="footer-chip">Sandesh</span>
+                                <span className="footer-chip">Tanay</span>
+                            </div>
+                        </div>
+                        <div className="footer-col">
+                            <p className="footer-section-label">ACADEMIC PROJECT</p>
+                            <p className="footer-college">R V College of Engineering</p>
+                            <p className="footer-location">Bangalore, Karnataka<br />India</p>
+                            <p className="footer-year">2026</p>
+                        </div>
+                    </div>
+                    <hr className="footer-divider" />
+                    <div className="footer-bottom">
+                        <p className="footer-copy">© 2026 Engineering Draft Angle Advisor</p>
+                        <div className="footer-tech-badges">
+                            <span className="footer-tech-badge">React</span>
+                            <span className="footer-tech-badge">Node.js</span>
+                            <span className="footer-tech-badge">MongoDB</span>
+                            <span className="footer-tech-badge">Groq AI</span>
                         </div>
                     </div>
                 </div>

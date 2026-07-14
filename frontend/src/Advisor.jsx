@@ -213,6 +213,34 @@ const emptyStateChips = [
 
 function Advisor({ onBack }) {
     const { user, logout } = useAuth();
+    const [theme, setThemeState] = useState(() => localStorage.getItem("theme") || "system");
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const settingsRef = useRef(null);
+
+    const updateTheme = (newTheme) => {
+        setThemeState(newTheme);
+        localStorage.setItem("theme", newTheme);
+        const isDark = newTheme === "dark" || (newTheme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute("content", isDark ? "#121212" : "#FAF9F6");
+        }
+    };
+
+    // Close settings popover when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (settingsRef.current && !settingsRef.current.contains(e.target)) {
+                setSettingsOpen(false);
+            }
+        };
+        if (settingsOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, [settingsOpen]);
+
     const [form, setForm] = useState(initialForm);
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -548,12 +576,51 @@ function Advisor({ onBack }) {
                             </button>
                         )}
                         
-                        <button type="button" className="btn-nav-settings" title="Settings Preferences">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="settings-gear-svg">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                            </svg>
-                        </button>
+                        <div className="settings-wrapper" ref={settingsRef}>
+                            <button 
+                                type="button" 
+                                className={`btn-nav-settings ${settingsOpen ? "active" : ""}`} 
+                                title="Settings Preferences"
+                                onClick={() => setSettingsOpen(!settingsOpen)}
+                            >
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="settings-gear-svg">
+                                    <circle cx="12" cy="12" r="3" />
+                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                                </svg>
+                            </button>
+                            
+                            {settingsOpen && (
+                                <div className="settings-popover">
+                                    <div className="settings-popover-title">Preferences</div>
+                                    <div className="settings-popover-row">
+                                        <span className="settings-popover-label">Interface Theme</span>
+                                        <div className="theme-segmented-control">
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "system" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("system")}
+                                            >
+                                                System
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "light" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("light")}
+                                            >
+                                                Light
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                className={`theme-segment-btn ${theme === "dark" ? "selected" : ""}`}
+                                                onClick={() => updateTheme("dark")}
+                                            >
+                                                Dark
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                         
                         {user && (
                             <>
@@ -1108,13 +1175,13 @@ function Advisor({ onBack }) {
                                 className={`spotlight-send-btn ${chatLoading ? "loading-active" : ""}`}
                             >
                                 {chatLoading ? (
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="send-btn-spinner-svg">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="send-btn-spinner-svg">
                                         <circle cx="12" cy="12" r="10" strokeDasharray="30" strokeDashoffset="10" />
                                     </svg>
                                 ) : (
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="spotlight-send-icon">
-                                        <line x1="22" y1="2" x2="11" y2="13" />
-                                        <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spotlight-send-icon">
+                                        <path d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18.168-8.215a.5.5 0 0 0 0-.904L3.714 3.048z" />
+                                        <path d="M6 12h16" />
                                     </svg>
                                 )}
                             </button>
