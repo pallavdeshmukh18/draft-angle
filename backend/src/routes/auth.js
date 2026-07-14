@@ -82,6 +82,7 @@ router.post("/register", async (req, res, next) => {
 
         return res.status(201).json({
             message: "Registration successful.",
+            token,
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -119,6 +120,7 @@ router.post("/login", async (req, res, next) => {
 
         return res.status(200).json({
             message: "Login successful.",
+            token,
             user: {
                 id: user._id,
                 fullName: user.fullName,
@@ -139,11 +141,11 @@ router.get("/me", requireAuth, async (req, res) => {
 });
 
 // Helper to render popup callback HTML page with postMessage and window.close
-const sendPopupResponse = (res, status, errorMessage = null) => {
+const sendPopupResponse = (res, status, errorMessage = null, token = null) => {
     const isSuccess = status === "success";
     const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
     const payload = isSuccess
-        ? `{ type: "GOOGLE_LOGIN_SUCCESS" }`
+        ? `{ type: "GOOGLE_LOGIN_SUCCESS", token: ${JSON.stringify(token)} }`
         : `{ type: "GOOGLE_LOGIN_ERROR", message: ${JSON.stringify(errorMessage || "Google Sign-In failed.")} }`;
 
     // Relax CSP specifically for this minimal dispatcher HTML to allow inline script execution safely under Helmet
@@ -190,6 +192,20 @@ router.get("/google/callback", async (req, res) => {
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
         const apiBaseUrl = `${req.protocol}://${req.get("host")}`;
 
+        const maskString = (str) => {
+            if (!str) return "UNDEFINED";
+            const trimmed = str.trim();
+            if (trimmed.length !== str.length) {
+                console.warn(`[OAuth Warning] Variable has leading/trailing whitespace: length=${str.length}, trimmedLength=${trimmed.length}`);
+            }
+            if (str.length <= 16) return `[Too Short: len=${str.length}]`;
+            return `${str.substring(0, 8)}...${str.substring(str.length - 8)} (len=${str.length})`;
+        };
+
+        console.log(`[OAuth Audit] Loaded GOOGLE_CLIENT_ID: ${maskString(clientId)}`);
+        console.log(`[OAuth Audit] Loaded GOOGLE_CLIENT_SECRET: ${maskString(clientSecret)}`);
+        console.log(`[OAuth Audit] Constructed Redirect URI: ${apiBaseUrl}/api/auth/google/callback`);
+
         if (!clientId || !clientSecret) {
             return sendPopupResponse(res, "error", "Google Client ID or Client Secret is not configured on the server.");
         }
@@ -202,8 +218,8 @@ router.get("/google/callback", async (req, res) => {
             },
             body: new URLSearchParams({
                 code: String(code),
-                client_id: clientId,
-                client_secret: clientSecret,
+                client_id: clientId.trim(),
+                client_secret: clientSecret.trim(),
                 redirect_uri: `${apiBaseUrl}/api/auth/google/callback`,
                 grant_type: "authorization_code"
             })
@@ -213,6 +229,7 @@ router.get("/google/callback", async (req, res) => {
 
         if (!tokenResponse.ok || !tokenData.id_token) {
             const errDetails = tokenData.error_description || tokenData.error || "Token exchange failed";
+            console.error("[OAuth Token Exchange Failure Detail]:", JSON.stringify(tokenData));
             return sendPopupResponse(res, "error", errDetails);
         }
 
@@ -278,7 +295,7 @@ router.get("/google/callback", async (req, res) => {
         const jwtToken = generateToken(user._id);
         setAuthCookie(res, jwtToken);
 
-        return sendPopupResponse(res, "success");
+        return sendPopupResponse(res, "success", null, jwtToken);
     } catch (err) {
         console.error("Google Auth Error:", err);
         return sendPopupResponse(res, "error", "Server encountered an error processing Google login.");
