@@ -19,10 +19,11 @@ const generateToken = (userId) => {
 
 // Helper to set cookie
 const setAuthCookie = (res, token) => {
+    const isProd = process.env.NODE_ENV === "production";
     res.cookie("token", token, {
         httpOnly: true, // Safeguards against XSS attacks
-        secure: process.env.NODE_ENV === "production", // Enforces TLS in production
-        sameSite: "strict", // Safeguards against CSRF attacks
+        secure: isProd, // Enforces TLS in production (required for SameSite=None)
+        sameSite: isProd ? "none" : "lax", // Allows cross-site credentials transmissions in prod
         maxAge: 24 * 60 * 60 * 1000, // 24 hours
         path: "/"
     });
@@ -285,10 +286,11 @@ router.get("/google/callback", async (req, res) => {
 
 // POST /api/auth/logout
 router.post("/logout", (req, res) => {
+    const isProd = process.env.NODE_ENV === "production";
     res.cookie("token", "", {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
+        secure: isProd,
+        sameSite: isProd ? "none" : "lax",
         expires: new Date(0), // Instantly expire the cookie
         path: "/"
     });

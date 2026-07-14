@@ -9,6 +9,8 @@ import authRouter from "./routes/auth.js";
 export const createApp = () => {
     const app = express();
 
+    app.set("trust proxy", 1);
+
     // Enable security headers
     app.use(helmet());
 
@@ -30,6 +32,11 @@ export const createApp = () => {
     app.use(cookieParser());
     
     app.use(express.json({ limit: "1mb" }));
+
+    app.use((req, res, next) => {
+        console.log(`[Request] ${req.method} ${req.originalUrl}`);
+        next();
+    });
 
     app.get("/", (_req, res) => {
         res.status(200).send("Backend is running");
