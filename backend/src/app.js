@@ -18,15 +18,32 @@ export const createApp = () => {
     app.use(mongoSanitize());
 
     const allowedOrigins = process.env.CLIENT_URL
-        ? process.env.CLIENT_URL.split(",").map((value) => value.trim()).filter(Boolean)
-        : true;
+        ? process.env.CLIENT_URL.split(",").map((value) => value.trim().replace(/\/+$/, "")).filter(Boolean)
+        : [];
 
-    app.use(
-        cors({
-            origin: allowedOrigins,
-            credentials: true
-        })
-    );
+    const corsOptions = {
+        origin: (origin, callback) => {
+            // Allow server-to-server or script-based requests without Origin headers (like health checks or server curl)
+            if (!origin) return callback(null, true);
+            
+            const originClean = origin.toLowerCase().trim();
+            
+            // Check if origin matches configuration, localhost dev ports, or preview vercel deployments
+            const isAllowed = allowedOrigins.some(allowed => allowed.toLowerCase() === originClean)
+                || originClean.endsWith(".vercel.app")
+                || originClean.startsWith("http://localhost:")
+                || originClean.startsWith("http://127.0.0.1:");
+                
+            if (isAllowed) {
+                callback(null, true);
+            } else {
+                callback(new Error(`CORS policy blocked request origin: ${origin}`));
+            }
+        },
+        credentials: true
+    };
+
+    app.use(cors(corsOptions));
 
     // Parse cookie headers for JWT authentication
     app.use(cookieParser());

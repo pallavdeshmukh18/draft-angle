@@ -86,9 +86,19 @@ export const AuthProvider = ({ children, onViewChange }) => {
         setLoading(true);
         setAuthError("");
         try {
-            const userProfile = await refreshAuth();
+            // Wait briefly (500ms) for the browser to sync cookies set by the popup window into the parent cookie store
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            
+            let userProfile = await refreshAuth();
             if (!userProfile) {
-                throw new Error("Failed to retrieve user profile after successful authentication.");
+                // Retry once more after another 500ms in case of slower browser sync latency
+                console.log("Initial session retrieval failed. Retrying in 500ms...");
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                userProfile = await refreshAuth();
+                
+                if (!userProfile) {
+                    throw new Error("Failed to retrieve user profile after successful authentication.");
+                }
             }
             return userProfile;
         } catch (err) {
